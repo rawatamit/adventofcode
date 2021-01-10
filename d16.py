@@ -1,3 +1,6 @@
+import collections
+
+
 def read_ticket(line):
     return [int(x) for x in line.split(',')]
 
@@ -94,28 +97,56 @@ def check_ticket(ticket, index, ranges):
     return False
 
 
-def solve_rules(rules, my_ticket, tickets):
-    unsolved_pos = set(range(len(my_ticket)))
-    field_map = {}
+def possible_positions(rule, my_ticket, tickets):
+    unsolved_pos = range(len(my_ticket))
+    field, ranges = rule
+    positions = []
 
-    while unsolved_pos:
-        pos = unsolved_pos.pop()
-        for field, ranges in rules:
-            if field in field_map:
-                continue
-            valid_field = True
-            # check if all tickets are valid for this field
-            for ticket in tickets:
-                if not check_ticket(ticket, pos, ranges):
-                    valid_field = False
-                    break
-            # check my ticket
-            if not check_ticket(my_ticket, pos, ranges):
-                valid_field = False
-            if valid_field:
-                field_map[field] = pos
+    for pos in unsolved_pos:
+        valid_position = True
+        # check if all tickets are valid for this field
+        for ticket in tickets:
+            if not check_ticket(ticket, pos, ranges):
+                valid_position = False
+                break
+        # check my ticket
+        if not check_ticket(my_ticket, pos, ranges):
+            valid_position = False
+        if valid_position:
+            positions.append(pos)
 
-    return field_map
+    return positions
+
+
+def solve_part2(rules, my_ticket, tickets):
+    # be careful, Q should not be a list
+    # things should be added at the end
+    # and removed at the front, otherwise
+    # there can be an infinte loop where
+    # we try to upate the same pair
+    Q = collections.deque()
+    mapping = {}
+
+    for rule in rules:
+        desc, ranges = rule
+        positions = possible_positions(rule, my_ticket, tickets)
+
+        if len(positions) == 1:
+            mapping[positions[0]] = desc
+        else:
+            Q.append((desc, positions))
+
+    while Q:
+        desc, positions = Q.popleft()
+        if len(positions) == 1:
+            mapping[positions[0]] = desc
+        else:
+            updated_positions = []
+            for position in positions:
+                if position not in mapping:
+                    updated_positions.append(position)
+            Q.append((desc, updated_positions))
+    return mapping
 
 
 if __name__ == '__main__':
@@ -132,6 +163,9 @@ if __name__ == '__main__':
     # ticket = [741, 921, 331, 658, 564, 106, 86, 719, 687, 377, 628, 390, 827, 152, 184, 334, 177, 152, 325, 20]
     # print(is_valid_ticket(ticket, rules))
     tickets = find_valid_tickets(rules, nearby_tickets)
+    mapping = solve_part2(rules, my_ticket, tickets)
+    mtf = [my_ticket[x] for x in mapping if mapping[x].startswith('departure')]
+    print(mapping, mtf)
     # print(len(tickets), len(nearby_tickets))
-    field_map = solve_rules(rules, my_ticket, tickets)
-    print(field_map)
+    # field_map = solve_rules(rules, my_ticket, tickets)
+    # print(field_map)
