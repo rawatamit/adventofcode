@@ -1,3 +1,5 @@
+import asyncio
+
 class IntCodeComputerMk1:
     def __init__(self, program, input=None):
         self.ip = 0
@@ -83,13 +85,13 @@ class IntCodeComputerMk1:
 
 
 class IntCodeComputerMk2:
-    def __init__(self, program, input=None):
+    def __init__(self, program, input=None, output=None):
         self.memory = {}
         self.ip = 0
         self.relative_base = 0
         self.program = program[:]
         self.input = input
-        self.output = []
+        self.output = output
 
     def read_memory(self, addr):
         if addr not in self.memory:
@@ -117,11 +119,11 @@ class IntCodeComputerMk2:
         else:
             self.write_memory(addr, value)
 
-    def get_input(self):
+    async def get_input(self):
         if self.input is None:
             return input('Enter value: ')
         else:
-            return next(self.input)
+            return await self.input.get()
 
     def get_operation(self, opcode):
         return opcode % 100 # last two digits of opcode
@@ -148,7 +150,7 @@ class IntCodeComputerMk2:
         mode = self.get_mode(opcode, pos)
         return self.get_address(pos, mode)
 
-    def execute(self):
+    async def execute(self):
         self.ip = 0
         self.memory = {}
         self.relative_base = 0
@@ -170,13 +172,13 @@ class IntCodeComputerMk2:
                 self.save_data(addr, arg1 * arg2)
                 self.ip += 4
             elif operation == 3:
-                x = self.get_input()
+                x = await self.get_input()
                 addr = self.get_write_address(op, 1)
                 self.save_data(addr, int(x))
                 self.ip += 2
             elif operation == 4:
                 output = self.get_operand(op, 1)
-                self.output.append(output)
+                await self.output.put(output)
                 self.ip += 2
             elif operation == 5:
                 arg1 = self.get_operand(op, 1)
@@ -204,6 +206,6 @@ class IntCodeComputerMk2:
                 self.relative_base += self.get_operand(op, 1)
                 self.ip += 2
             elif operation == 99:
-                return self.output
+                return 0
             else:
                 raise Exception('unknown opcode: {}'.format(op))
