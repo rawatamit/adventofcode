@@ -123,7 +123,9 @@ class IntCodeComputerMk2:
         if self.input is None:
             return input('Enter value: ')
         else:
-            return await self.input.get()
+            data = await self.input.get()
+            self.input.task_done()
+            return data
 
     def get_operation(self, opcode):
         return opcode % 100 # last two digits of opcode
