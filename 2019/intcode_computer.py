@@ -208,6 +208,7 @@ class IntCodeComputerMk2:
                 self.relative_base += self.get_operand(op, 1)
                 self.ip += 2
             elif operation == 99:
+                await self.output.put(None)
                 return 0
             else:
                 raise Exception('unknown opcode: {}'.format(op))
