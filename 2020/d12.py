@@ -1,70 +1,108 @@
-import math
+from point import Point2D
+import direction
 
 
-def cmd_components(cmd):
-    return cmd[0], int(cmd[1:])
+def scalar_multiply_point(a, scalar):
+    return Point2D(a.x * scalar, a.y * scalar)
 
 
-def is_directional_cmd(cmd):
-    return cmd[0] in ('L', 'R')
-
-
-class ShipVector:
-    def __init__(self):
-        self.pos = (0, 0)
+class Ship:
+    def __init__(self, pos, dir) -> None:
+        self.pos = pos
+        self.dir = dir
     
-    @property
-    def X(self):
-        return self.pos[0]
+    def move_in_direction(self, dir, value):
+        self.move_towards(dir.offset, value)
+
+    def move_forward(self, value):
+        self.move_in_direction(self.dir, value)
+
+    def move_towards(self, point, value):
+        move_vector = scalar_multiply_point(point, value)
+        self.pos.add(move_vector)
+
+    def turn_left(self, degrees):
+        self.dir = direction.turn_left(self.dir, degrees // 90)
+
+    def turn_right(self, degrees):
+        self.dir = direction.turn_right(self.dir, degrees // 90)
+
+
+class Waypoint:
+    def __init__(self, pos) -> None:
+        self.pos = pos
     
-    @property
-    def Y(self):
-        return self.pos[1]
+    def rotate_left(self, degrees):
+        for _ in range(degrees // 90):
+            self.pos.rotate_left()
 
-    def rotate_counter_clockwise(self, degrees):
-        # cos(theta) -sin(theta)
-        # sin(theta)  cos(theta)
-        x = round(self.X * math.cos(math.pi/180 * degrees)
-            + (- self.Y * math.sin(math.pi/180 * degrees)))
-        y = round(self.X * math.sin(math.pi/180 * degrees)
-            + self.Y * math.cos(math.pi/180 * degrees))
-        self.pos = (x, y)
+    def rotate_right(self, degrees):
+        for _ in range(degrees // 90):
+            self.pos.rotate_right()
 
-    def update_direction(self, cmd):
-        direction, degrees = cmd_components(cmd)
-
-        if direction == 'L':
-            self.rotate_counter_clockwise(degrees)
-        elif direction == 'R':
-            self.rotate_counter_clockwise(360 - degrees)
-
-    def update_position(self, cmd):
-        direction, value = cmd_components(cmd)
-        if direction == 'F':
-            direction = self.get_direction()
-
-        if direction == 'E':
-            self.pos[0] += value
-        elif direction == 'W':
-            self.pos[0] += value
-        elif direction == 'N':
-            self.pos[1] += value
-        elif direction == 'S':
-            self.pos[1] -= value
+    def move_in_direction(self, dir, value):
+        move_vector = scalar_multiply_point(dir.offset, value)
+        self.pos.add(move_vector)
 
 
-def move_ship(stream):
-    ship = ShipVector()
-    for cmd in stream:
-        cmd = cmd.strip()
-        if is_directional_cmd(cmd):
-            ship.update_direction(cmd)
-        else:
-            ship.update_position(cmd)
-    return ship
+def part1():
+    ship = Ship(pos=Point2D(0, 0), dir=direction.East())
+
+    with open('d12.txt') as fin:
+        for line in fin:
+            line = line.strip()
+            cmd, value = line[0], int(line[1:])
+
+            if cmd == 'F':
+                ship.move_forward(value)
+            elif cmd == 'L':
+                ship.turn_left(value)
+            elif cmd == 'R':
+                ship.turn_right(value)
+            elif cmd == 'N':
+                ship.move_in_direction(direction.North(), value)
+            elif cmd == 'S':
+                ship.move_in_direction(direction.South(), value)
+            elif cmd == 'E':
+                ship.move_in_direction(direction.East(), value)
+            elif cmd == 'W':
+                ship.move_in_direction(direction.West(), value)
+
+    print(ship.pos.manhattan_distance(Point2D(0, 0)))
+
+
+def part2():
+    ship = Ship(pos=Point2D(0, 0), dir=direction.East())
+
+    wp_init_pos = scalar_multiply_point(direction.East().offset, 10)
+    wp_init_pos.add(direction.North().offset)
+    waypoint = Waypoint(wp_init_pos)
+
+    with open('d12.txt') as fin:
+        for line in fin:
+            line = line.strip()
+            cmd, value = line[0], int(line[1:])
+
+            if cmd == 'F':
+                #print(ship.pos, waypoint.pos)
+                ship.move_towards(waypoint.pos, value)
+                #print(ship.pos, waypoint.pos)
+            elif cmd == 'L':
+                waypoint.rotate_left(value)
+            elif cmd == 'R':
+                waypoint.rotate_right(value)
+            elif cmd == 'N':
+                waypoint.move_in_direction(direction.North(), value)
+            elif cmd == 'S':
+                waypoint.move_in_direction(direction.South(), value)
+            elif cmd == 'E':
+                waypoint.move_in_direction(direction.East(), value)
+            elif cmd == 'W':
+                waypoint.move_in_direction(direction.West(), value)
+
+    print(ship.pos.manhattan_distance(Point2D(0, 0)))
 
 
 if __name__ == "__main__":
-    with open('d12.txt') as fin:
-        ship = move_ship(fin)
-        print(ship.dir, ship.xpos, ship.ypos)
+    part1()
+    part2()
